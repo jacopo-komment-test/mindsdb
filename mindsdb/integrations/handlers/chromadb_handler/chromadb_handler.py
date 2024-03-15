@@ -53,6 +53,15 @@ class ChromaDBHandler(VectorStoreHandler):
     name = "chromadb"
 
     def __init__(self, name: str, **kwargs):
+        """
+        initializes an object for managing a connection to a Chroma server. It
+        sets instance variables for the client configuration, connectivity state,
+        and storage of integration IDs.
+
+        Args:
+            name (str): name of the integration in the Chroma server.
+
+        """
         super().__init__(name)
         self.handler_storage = HandlerStorage(kwargs.get("integration_id"))
         self._client = None
@@ -88,6 +97,25 @@ class ChromaDBHandler(VectorStoreHandler):
         return config
 
     def _get_client(self):
+        """
+        generates a Chromadb client instance based on the configuration provided.
+        It first retrieves the client configuration and then decides which type
+        of client to use (persistent or HTTP client) based on the `persist_directory`.
+        If `persist_directory` is not None, it returns a persistent client instance;
+        otherwise, it returns an HTTP client instance.
+
+        Returns:
+            ` chromadb.Client` object.: a `ChromaClient` instance, either persistent
+            or http-based, based on the configuration provided.
+            
+            		- `chromadb`: This is an instance of the `ChromaDB` class, which
+            represents a connection to the Chroma server.
+            		- `PersistentClient` or `HttpClient`: These are the types of clients
+            that can be created using the ` chromadb` instance. The type of client
+            depends on the configuration provided in the `client_config` object.
+            
+
+        """
         client_config = self._client_config
         if client_config is None:
             raise Exception("Client config is not set!")
@@ -155,6 +183,18 @@ class ChromaDBHandler(VectorStoreHandler):
         return response_code
 
     def _get_chromadb_operator(self, operator: FilterOperator) -> str:
+        """
+        maps a FilterOperator to its corresponding ChromaDB operator string and
+        raises an exception if the operator is not supported.
+
+        Args:
+            operator (FilterOperator): FilterOperator value that determines the
+                corresponding symbol to be used in the ChromaDB query.
+
+        Returns:
+            str: a string representing the operator to use for filtering in ChromaDB.
+
+        """
         mapping = {
             FilterOperator.EQUAL: "$eq",
             FilterOperator.NOT_EQUAL: "$ne",
@@ -234,6 +274,30 @@ class ChromaDBHandler(VectorStoreHandler):
         offset: int = None,
         limit: int = None,
     ) -> pd.DataFrame:
+        """
+        retrieves data from a collection based on filter conditions specified by
+        the user, projecting the data to specified columns and including additional
+        fields such as distances and embeddings.
+
+        Args:
+            table_name (str): name of the collection or table to perform the query
+                on.
+            columns (None): 1-D list of column names for which the function should
+                project the data from the resulting dataframe.
+            conditions (None): filter conditions for the query, allowing to specify
+                conditions on columns and their values using the `FilterCondition`
+                class, and it is used to filter the documents in the collection
+                based on those conditions.
+            offset (None): 0-based offset in the result set of the query, indicating
+                from which document to start retrieving data.
+            limit (None): maximum number of results to be retrieved from the
+                database, which is used to limit the result set returned by the function.
+
+        Returns:
+            pd.DataFrame: a pandas DataFrame containing the selected columns and
+            values from the MongoDB collection.
+
+        """
         collection = self._client.get_collection(table_name)
         filters = self._translate_metadata_condition(conditions)
 
@@ -372,6 +436,18 @@ class ChromaDBHandler(VectorStoreHandler):
     def delete(
         self, table_name: str, conditions: List[FilterCondition] = None
     ):
+        """
+        deletes data from a specified table based on conditions or ID filters
+        provided as input parameters. It translates metadata conditions into SQL
+        filters and IDs, then calls the collection's delete method with the filtered
+        IDs and where clause.
+
+        Args:
+            table_name (str): name of the table for which deletion is performed.
+            conditions (None): 1 or more filtering conditions for the data to be
+                deleted.
+
+        """
         filters = self._translate_metadata_condition(conditions)
         # get id filters
         id_filters = [
@@ -416,6 +492,18 @@ class ChromaDBHandler(VectorStoreHandler):
 
     def get_columns(self, table_name: str) -> HandlerResponse:
         # check if collection exists
+        """
+        checks if a specified collection exists and, if so, calls the parent
+        `get_columns` function to retrieve the columns.
+
+        Args:
+            table_name (str): name of the MongoDB collection that the function
+                will operate on.
+
+        Returns:
+            HandlerResponse: a list of column names from the specified table.
+
+        """
         try:
             _ = self._client.get_collection(table_name)
         except ValueError:
