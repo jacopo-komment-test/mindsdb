@@ -54,6 +54,31 @@ class SlackChannelsTable(APITable):
         """
         # override the default function
         def parse_utc_date(date_str):
+            """
+            takes a string representing a datetime object in ISO format and returns
+            a UTC-aware datetime object with the same timestamp.
+
+            Args:
+                date_str (str): 12-hour timestamp or ISO8601 formatted date and
+                    time string that the `parse_utc_date()` function parses into
+                    a Python `datetime` object with the UTC time zone.
+
+            Returns:
+                `datetime.date()` object.: a `datetime` object with the converted
+                date and time in UTC timezone.
+                
+                		- `datetime`: This is a subclass of `datetime. datetime represents
+                an instant in time with a particular time zone. In this case, the
+                UTC (Coordinated Universal Time) time zone is used.
+                		- `fromisoformat`: The method `fromisoformat` creates a `datetime`
+                object from an ISO 8601 string representation of a date and time.
+                		- `replace`: The method `replace` modifies the existing datetime
+                object by replacing its time zone with the UTC time zone.
+                		- `tzinfo`: This is a property that specifies the time zone of
+                the datetime object. In this case, it is set to `timezone.utc`.
+                
+
+            """
             date_obj = datetime.fromisoformat(date_str).replace(tzinfo=timezone.utc)
             return date_obj
 
@@ -380,6 +405,16 @@ class SlackHandler(APIChatHandler):
         self._socket_mode_client = None
 
     def get_chat_config(self):
+        """
+        generates high-quality documentation for code, returning a dictionary of
+        parameters defining chat configuration options, including polling frequency
+        and table names for storing chat data.
+
+        Returns:
+            dict: a dictionary of configuration parameters for a chat API, including
+            polling and chat table definitions.
+
+        """
         params = {
             'polling': {
                 'type': 'realtime',
@@ -397,11 +432,45 @@ class SlackHandler(APIChatHandler):
 
     def get_my_user_name(self):
         # TODO
+        """
+        retrieves the user's Bot ID from the API by connecting to it and getting
+        the users profile information.
+
+        Returns:
+            int: the ID of the bot user.
+
+        """
         api = self.connect()
         resp = api.users_profile_get()
         return resp.data['profile']['bot_id']
 
     def subscribe(self, stop_event, callback, table_name, **kwargs):
+        """
+        sets up a WebSocket connection using the SocketModeClient library and
+        establishes an event listener for the "events_api" type. It then processes
+        incoming message events from the connected channel and calls the specified
+        callback function with the relevant row data.
+
+        Args:
+            stop_event (`Event` object.): event that triggers the closure of the
+                `SocketModeClient` when it is set, indicating that the listener
+                is no longer interested in receiving WebSocket messages.
+                
+                		- `stop_event`: A `socket.Event` instance, which is used to
+                indicate that the subscription should stop. The event object
+                contains information about the reason for stopping the subscription.
+                
+            callback (`object`.): function that will be called when an IM message
+                is received through the WebSocket connection, with the message
+                data passed as an argument in a dictionary.
+                
+                		- `row`: a dictionary containing information about the message
+                received, including the text and user.
+                
+            table_name (str): name of the table that the message will be stored
+                in, and it is used to check if the table is supported by the function.
+
+        """
         if table_name != 'channels':
             raise RuntimeError(f'Table not supported: {table_name}')
 
@@ -414,6 +483,18 @@ class SlackHandler(APIChatHandler):
 
         def _process_websocket_message(client: SocketModeClient, request: SocketModeRequest):
             # Acknowledge the request
+            """
+            acknowledges a request and processes an incoming message from an IM
+            channel. It retrieves relevant data from the payload of the message
+            and passes it to a callback function for further processing.
+
+            Args:
+                client (SocketModeClient): SocketModeClient object through which
+                    the function processes the WebSocket message.
+                request (SocketModeRequest): WS message received from the client,
+                    containing information such as the message ID, type, and payload.
+
+            """
             response = SocketModeResponse(envelope_id=request.envelope_id)
             client.send_socket_mode_response(response)
 
